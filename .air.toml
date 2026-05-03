@@ -1,0 +1,16 @@
+# .air.toml — hot reload config for development
+# Install: go install github.com/air-verse/air@latest
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "templ generate && go build -o ./tmp/webmail ./cmd/server"
+  bin = "./tmp/webmail"
+  include_ext = ["go", "templ", "css", "js"]
+  exclude_regex = ["_templ\\.go$"]
+  exclude_dir  = ["tmp", "bin"]
+  delay        = 500
+
+[screen]
+  clear_on_rebuild = true

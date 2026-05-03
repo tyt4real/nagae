@@ -1,0 +1,20 @@
+/* ── lainrocks (new) ── deep space purple ─────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg:          #06060b;
+  --bg-2:        #0d0d18;
+  --bg-3:        #0f0f1c;
+  --border:      #1c1c32;
+  --border-hi:   #3d2b72;
+  --text:        #ccc8e0;
+  --text-dim:    #635f80;
+  --text-mid:    #9994b8;
+  --accent:      #c084fc;
+  --accent-dim:  #4a3370;
+  --error:       #f87171;
+  --font-mono:   'Share Tech Mono', 'Courier New', monospace;
+  --font-serif:  'Syne', system-ui, sans-serif;
+  --radius:      6px;
+  --sidebar-w:   200px;
+}

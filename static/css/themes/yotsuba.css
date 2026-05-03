@@ -1,0 +1,20 @@
+/* ── yotsuba ── warm paper editorial ──────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Outfit:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg:          #faf7f2;
+  --bg-2:        #f2ede4;
+  --bg-3:        #ffffff;
+  --border:      #e0d8cb;
+  --border-hi:   #c9a87c;
+  --text:        #3a2e25;
+  --text-dim:    #8a7a6a;
+  --text-mid:    #5a4a3a;
+  --accent:      #c84b2f;
+  --accent-dim:  #e8896b;
+  --error:       #b91c1c;
+  --font-mono:   'JetBrains Mono', 'Courier New', monospace;
+  --font-serif:  'Outfit', system-ui, sans-serif;
+  --radius:      4px;
+  --sidebar-w:   200px;
+}

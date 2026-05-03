@@ -1,0 +1,33 @@
+package auth
+
+import "nagae/views/layout"
+
+templ Login(errMsg string) {
+	@layout.Base("sign in", "") {
+		<div class="login-wrap">
+			<div class="login-card">
+				<div class="login-header">
+					<h1 class="login-title">post/</h1>
+					<p class="login-sub">a mail client</p>
+				</div>
+				if errMsg != "" {
+					<div class="error-banner">{ errMsg }</div>
+				}
+				<form method="POST" action="/login" class="login-form">
+					<fieldset class="field-group">
+						<legend>account</legend>
+						<div class="field-row">
+							<label for="username">user</label>
+							<input type="email" id="username" name="username" placeholder="you@example.com" required/>
+						</div>
+						<div class="field-row">
+							<label for="password">pass</label>
+							<input type="password" id="password" name="password" required/>
+						</div>
+					</fieldset>
+					<button type="submit" class="btn-primary">connect →</button>
+				</form>
+			</div>
+		</div>
+	}
+}

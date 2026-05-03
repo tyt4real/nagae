@@ -1,0 +1,41 @@
+package compose
+
+import "nagae/views/layout"
+
+templ Compose(username string, to string, subject string, errMsg string) {
+	@layout.Base("compose", username) {
+		<div class="compose-wrap">
+			<div class="compose-card">
+				<div class="compose-header">
+					<h2>new message</h2>
+					<a href="/inbox" class="back-link">← inbox</a>
+				</div>
+				if errMsg != "" {
+					<div class="error-banner">{ errMsg }</div>
+				}
+				<form method="POST" action="/compose" class="compose-form">
+					<div class="compose-field">
+						<label for="to">to</label>
+						<input type="text" id="to" name="to" value={ to } placeholder="recipient@example.com" required/>
+					</div>
+					<div class="compose-field">
+						<label for="cc">cc</label>
+						<input type="text" id="cc" name="cc" placeholder="optional"/>
+					</div>
+					<div class="compose-field">
+						<label for="subject">subject</label>
+						<input type="text" id="subject" name="subject" value={ subject } placeholder="what's this about?"/>
+					</div>
+					<div class="compose-field compose-body-field">
+						<label for="body">body</label>
+						<textarea id="body" name="body" rows="16" placeholder="write your message here..."></textarea>
+					</div>
+					<div class="compose-actions">
+						<button type="submit" class="btn-primary">send →</button>
+						<a href="/inbox" class="btn-cancel">discard</a>
+					</div>
+				</form>
+			</div>
+		</div>
+	}
+}
