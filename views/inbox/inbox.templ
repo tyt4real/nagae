@@ -33,6 +33,7 @@ templ Inbox(username string, activeMailbox string, mailboxes []mail.Mailbox, mes
 				<div class="list-header">
 					<h2>{ activeMailbox }</h2>
 					<span class="msg-count">{ fmt.Sprintf("%d total", pag.Total) }</span>
+					<a href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s&page=%d", activeMailbox, pag.Page)) } class="btn-refresh" title="Refresh">↻</a>
 				</div>
 				if flash != "" {
 					<div class="flash-banner">{ flash }</div>

@@ -129,23 +129,31 @@ func (ic *IMAPClient) ListMailboxes() ([]Mailbox, error) {
 }
 
 func (ic *IMAPClient) ListMessages(mailbox string, page, limit uint32) ([]MessageHeader, uint32, error) {
-	selectData, err := ic.client.Select(mailbox, nil).Wait()
+	status, err := ic.client.Status(mailbox, &imap.StatusOptions{NumMessages: true}).Wait()
+	if err != nil {
+		return nil, 0, fmt.Errorf("status mailbox %q: %w", mailbox, err)
+	}
+	if status.NumMessages == nil || *status.NumMessages == 0 {
+		return []MessageHeader{}, 0, nil
+	}
+	total := *status.NumMessages
+
+	selectData, err := ic.client.Select(mailbox, &imap.SelectOptions{ReadOnly: true}).Wait()
 	if err != nil {
 		return nil, 0, fmt.Errorf("select mailbox %q: %w", mailbox, err)
 	}
-
-	total := selectData.NumMessages
-	if total == 0 {
-		return []MessageHeader{}, 0, nil
+	totalCount := selectData.NumMessages
+	if totalCount == 0 {
+		return []MessageHeader{}, total, nil
 	}
 
 	offset := page * limit
 
-	if offset >= total {
+	if offset >= totalCount {
 		return []MessageHeader{}, total, nil
 	}
 
-	end := total - offset
+	end := totalCount - offset
 	var start uint32 = 1
 	if end > limit {
 		start = end - limit + 1

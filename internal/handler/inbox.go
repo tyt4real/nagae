@@ -56,6 +56,7 @@ func InboxGet(w http.ResponseWriter, r *http.Request) {
 		totalPages = 1
 	}
 
+	w.Header().Set("Cache-Control", "no-store")
 	inboxview.Inbox(creds.Username, mailbox, mailboxes, messages, flash, inboxview.Pagination{
 		Page:       page,
 		TotalPages: totalPages,
