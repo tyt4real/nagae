@@ -238,6 +238,110 @@ func (ic *IMAPClient) DeleteMessage(mailbox string, uid uint32) error {
 	return nil
 }
 
+func (ic *IMAPClient) MarkMessage(mailbox string, uid uint32, seen bool) error {
+	if _, err := ic.client.Select(mailbox, nil).Wait(); err != nil {
+		return fmt.Errorf("select mailbox: %w", err)
+	}
+
+	uidSet := imap.UIDSetNum(imap.UID(uid))
+	op := imap.StoreFlagsAdd
+	if !seen {
+		op = imap.StoreFlagsDel
+	}
+
+	storeFlags := &imap.StoreFlags{
+		Op:     op,
+		Flags:  []imap.Flag{imap.FlagSeen},
+		Silent: true,
+	}
+	if err := ic.client.Store(uidSet, storeFlags, nil).Close(); err != nil {
+		return fmt.Errorf("mark seen=%v: %w", seen, err)
+	}
+	return nil
+}
+
+func (ic *IMAPClient) SearchMessages(mailbox, query string) ([]MessageHeader, error) {
+	if _, err := ic.client.Select(mailbox, &imap.SelectOptions{ReadOnly: true}).Wait(); err != nil {
+		return nil, fmt.Errorf("select mailbox: %w", err)
+	}
+
+	criteria := &imap.SearchCriteria{
+		Or: [][2]imap.SearchCriteria{
+			{
+				{Text: []string{query}},
+				{Header: []imap.SearchCriteriaHeaderField{{Key: "From", Value: query}}},
+			},
+		},
+	}
+
+	searchData, err := ic.client.Search(criteria, &imap.SearchOptions{ReturnAll: true}).Wait()
+	if err != nil {
+		return nil, fmt.Errorf("search: %w", err)
+	}
+	if len(searchData.AllSeqNums()) == 0 {
+		return []MessageHeader{}, nil
+	}
+
+	fetchOptions := &imap.FetchOptions{
+		Flags:    true,
+		Envelope: true,
+		UID:      true,
+	}
+
+	msgs, err := ic.client.Fetch(searchData.All, fetchOptions).Collect()
+	if err != nil {
+		return nil, fmt.Errorf("fetch search results: %w", err)
+	}
+
+	headers := make([]MessageHeader, 0, len(msgs))
+	for _, msg := range msgs {
+		seen := false
+		for _, f := range msg.Flags {
+			if f == imap.FlagSeen {
+				seen = true
+				break
+			}
+		}
+		from := ""
+		if msg.Envelope != nil && len(msg.Envelope.From) > 0 {
+			a := msg.Envelope.From[0]
+			if a.Name != "" {
+				from = a.Name
+			} else {
+				from = a.Mailbox + "@" + a.Host
+			}
+		}
+		subject := ""
+		if msg.Envelope != nil {
+			subject = msg.Envelope.Subject
+		}
+		headers = append(headers, MessageHeader{
+			UID:     uint32(msg.UID),
+			Subject: subject,
+			From:    from,
+			Date:    msg.Envelope.Date,
+			Seen:    seen,
+		})
+	}
+
+	for i, j := 0, len(headers)-1; i < j; i, j = i+1, j-1 {
+		headers[i], headers[j] = headers[j], headers[i]
+	}
+
+	return headers, nil
+}
+
+func (ic *IMAPClient) UnseenCount(mailbox string) (uint32, error) {
+	status, err := ic.client.Status(mailbox, &imap.StatusOptions{NumUnseen: true}).Wait()
+	if err != nil {
+		return 0, fmt.Errorf("status: %w", err)
+	}
+	if status.NumUnseen == nil {
+		return 0, nil
+	}
+	return *status.NumUnseen, nil
+}
+
 func (ic *IMAPClient) FetchMessage(mailbox string, uid uint32) (*Message, error) {
 	if _, err := ic.client.Select(mailbox, nil).Wait(); err != nil {
 		return nil, fmt.Errorf("select mailbox: %w", err)
@@ -272,8 +376,19 @@ func (ic *IMAPClient) FetchMessage(mailbox string, uid uint32) (*Message, error)
 			}
 		}
 
+		if len(raw.Envelope.ReplyTo) > 0 {
+			a := raw.Envelope.ReplyTo[0]
+			msg.ReplyTo = a.Mailbox + "@" + a.Host
+		} else {
+			msg.ReplyTo = msg.From
+		}
+
 		for _, a := range raw.Envelope.To {
 			msg.To = append(msg.To, a.Mailbox+"@"+a.Host)
+		}
+
+		for _, a := range raw.Envelope.Cc {
+			msg.CC = append(msg.CC, a.Mailbox+"@"+a.Host)
 		}
 	}
 

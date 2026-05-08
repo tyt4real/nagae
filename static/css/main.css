@@ -267,3 +267,53 @@ input::placeholder, textarea::placeholder { color: var(--text-dim); }
   color: var(--accent);
   transform: rotate(180deg);
 }
+
+/* ── Search ─────────────────────────────────────────────────────── */
+.search-form {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.search-input {
+  width: 180px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 4px 8px;
+  outline: none;
+  transition: border-color 0.15s, width 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  width: 240px;
+}
+
+.search-meta {
+  padding: 8px 24px;
+  font-size: 11px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Mark read/unread button ─────────────────────────────────────── */
+.btn-mark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-mark:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

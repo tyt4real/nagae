@@ -2,6 +2,7 @@ package inbox
 
 import (
 	"fmt"
+	"strings"
 	"nagae/internal/mail"
 	"nagae/views/layout"
 )
@@ -33,6 +34,10 @@ templ Inbox(username string, activeMailbox string, mailboxes []mail.Mailbox, mes
 				<div class="list-header">
 					<h2>{ activeMailbox }</h2>
 					<span class="msg-count">{ fmt.Sprintf("%d total", pag.Total) }</span>
+					<form method="GET" action="/search" class="search-form">
+						<input type="hidden" name="mailbox" value={ activeMailbox }/>
+						<input type="search" name="q" placeholder="search…" class="search-input"/>
+					</form>
 					<a href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s&page=%d", activeMailbox, pag.Page)) } class="btn-refresh" title="Refresh">↻</a>
 				</div>
 				if flash != "" {
@@ -99,6 +104,222 @@ templ Message(username string, mailbox string, mailboxes []mail.Mailbox, msg *ma
 					<a href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s", mailbox)) } class="back-link">← { mailbox }</a>
 					<div class="message-actions">
 						<a
+							href={ templ.SafeURL(fmt.Sprintf("/compose?to=%s&subject=Re%%3A %%s",
+								msg.ReplyTo, msg.Subject)) }
+							class="btn-reply"
+						>reply</a>
+						if len(msg.To) > 0 || len(msg.CC) > 0 {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/compose?to=%s&cc=%s&subject=Re%%3A %s",
+									msg.ReplyTo,
+									strings.Join(append(msg.To, msg.CC...), ","),
+									msg.Subject)) }
+								class="btn-reply"
+							>reply all</a>
+						}
+						if msg.Seen {
+							<form method="POST" action="/message/mark" class="delete-form">
+								<input type="hidden" name="mailbox" value={ mailbox }/>
+								<input type="hidden" name="uid" value={ fmt.Sprintf("%d", msg.UID) }/>
+								<input type="hidden" name="seen" value="0"/>
+								<button type="submit" class="btn-mark">mark unread</button>
+							</form>
+						} else {
+							<form method="POST" action="/message/mark" class="delete-form">
+								<input type="hidden" name="mailbox" value={ mailbox }/>
+								<input type="hidden" name="uid" value={ fmt.Sprintf("%d", msg.UID) }/>
+								<input type="hidden" name="seen" value="1"/>
+								<button type="submit" class="btn-mark">mark read</button>
+							</form>
+						}
+						<form method="POST" action="/message/delete" class="delete-form">
+							<input type="hidden" name="mailbox" value={ mailbox }/>
+							<input type="hidden" name="uid" value={ fmt.Sprintf("%d", msg.UID) }/>
+							<button type="submit" class="btn-delete" onclick="return confirm('Delete this message?')">delete</button>
+						</form>
+					</div>
+				</div>
+				<div class="message-header-block">
+					<h1 class="message-subject">{ msg.Subject }</h1>
+					<div class="message-meta">
+						<span><span class="meta-label">from</span> { msg.From }</span>
+						<span><span class="meta-label">date</span> { msg.Date.Format("Mon, 02 Jan 2006 15:04") }</span>
+						if len(msg.To) > 0 {
+							<span><span class="meta-label">to</span> { strings.Join(msg.To, ", ") }</span>
+						}
+						if len(msg.CC) > 0 {
+							<span><span class="meta-label">cc</span> { strings.Join(msg.CC, ", ") }</span>
+						}
+					</div>
+				</div>
+				if len(msg.Attachments) > 0 {
+					<div class="attachments">
+						<span class="attachments-label">attachments</span>
+						for _, att := range msg.Attachments {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/attachment?mailbox=%s&uid=%d&filename=%s", mailbox, msg.UID, att.Filename)) }
+								class="attachment-chip"
+							>
+								<span class="att-icon">⎘</span>
+								{ att.Filename }
+								<span class="att-size">{ formatSize(att.Size) }</span>
+							</a>
+						}
+					</div>
+				}
+				<div class="message-body">
+					<pre>{ msg.TextBody }</pre>
+				</div>
+			</section>
+		</div>
+	}
+}
+
+templ Search(username string, activeMailbox string, mailboxes []mail.Mailbox, query string, results []mail.MessageHeader) {
+	@layout.Base("search", username) {
+		<div class="app-layout">
+			<aside class="sidebar">
+				<a href="/compose" class="sidebar-compose">+ compose</a>
+				<nav class="mailbox-list">
+					for _, mb := range mailboxes {
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s", mb.Name)) }
+							class="mailbox-item"
+						>
+							{ mb.Name }
+						</a>
+					}
+				</nav>
+			</aside>
+			<section class="message-list">
+				<div class="list-header">
+					<h2>search</h2>
+					<form method="GET" action="/search" class="search-form">
+						<input type="hidden" name="mailbox" value={ activeMailbox }/>
+						<input type="search" name="q" value={ query } placeholder="search…" class="search-input" autofocus/>
+					</form>
+					<a href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s", activeMailbox)) } class="back-link" style="margin-left:8px">← back</a>
+				</div>
+				if query != "" {
+					<div class="search-meta">
+						{ fmt.Sprintf("%d result(s) for \"%s\" in %s", len(results), query, activeMailbox) }
+					</div>
+				}
+				if len(results) == 0 && query != "" {
+					<div class="empty-state">no messages found.</div>
+				} else {
+					for _, msg := range results {
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("/message?mailbox=%s&uid=%d", activeMailbox, msg.UID)) }
+							class={ "message-row", templ.KV("unread", !msg.Seen) }
+						>
+							<span class="msg-from">{ msg.From }</span>
+							<span class="msg-subject">{ msg.Subject }</span>
+							<span class="msg-date">{ msg.Date.Format("02 Jan 15:04") }</span>
+						</a>
+					}
+				}
+			</section>
+		</div>
+	}
+}
+
+/* /* func formatSize(bytes int) string {
+	if bytes < 1024 {
+		return fmt.Sprintf("%dB", bytes)
+	}
+	if bytes < 1024*1024 {
+		return fmt.Sprintf("%dKB", bytes/1024)
+	}
+	return fmt.Sprintf("%.1fMB", float64(bytes)/(1024*1024))
+} */
+
+/* templ Inbox(username string, activeMailbox string, mailboxes []mail.Mailbox, messages []mail.MessageHeader, flash string, pag Pagination) {
+	@layout.Base("inbox", username) {
+		<div class="app-layout">
+			<aside class="sidebar">
+				<a href="/compose" class="sidebar-compose">+ compose</a>
+				<nav class="mailbox-list">
+					for _, mb := range mailboxes {
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s", mb.Name)) }
+							class={ "mailbox-item", templ.KV("active", mb.Name == activeMailbox) }
+						>
+							{ mb.Name }
+						</a>
+					}
+				</nav>
+			</aside>
+			<section class="message-list">
+				<div class="list-header">
+					<h2>{ activeMailbox }</h2>
+					<span class="msg-count">{ fmt.Sprintf("%d total", pag.Total) }</span>
+					<a href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s&page=%d", activeMailbox, pag.Page)) } class="btn-refresh" title="Refresh">↻</a>
+				</div>
+				if flash != "" {
+					<div class="flash-banner">{ flash }</div>
+				}
+				if len(messages) == 0 {
+					<div class="empty-state">no messages here.</div>
+				} else {
+					for _, msg := range messages {
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("/message?mailbox=%s&uid=%d", activeMailbox, msg.UID)) }
+							class={ "message-row", templ.KV("unread", !msg.Seen) }
+						>
+							<span class="msg-from">{ msg.From }</span>
+							<span class="msg-subject">{ msg.Subject }</span>
+							<span class="msg-date">{ msg.Date.Format("02 Jan 15:04") }</span>
+						</a>
+					}
+				}
+				if pag.TotalPages > 1 {
+					<div class="pagination">
+						if pag.Page > 0 {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s&page=%d", pag.Mailbox, pag.Page-1)) }
+								class="page-btn"
+							>← newer</a>
+						} else {
+							<span class="page-btn disabled">← newer</span>
+						}
+						<span class="page-info">{ fmt.Sprintf("%d / %d", pag.Page+1, pag.TotalPages) }</span>
+						if pag.Page+1 < pag.TotalPages {
+							<a
+								href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s&page=%d", pag.Mailbox, pag.Page+1)) }
+								class="page-btn"
+							>older →</a>
+						} else {
+							<span class="page-btn disabled">older →</span>
+						}
+					</div>
+				}
+			</section>
+		</div>
+	}
+} */
+
+/* templ Message(username string, mailbox string, mailboxes []mail.Mailbox, msg *mail.Message) {
+	@layout.Base(msg.Subject, username) {
+		<div class="app-layout">
+			<aside class="sidebar">
+				<a href="/compose" class="sidebar-compose">+ compose</a>
+				<nav class="mailbox-list">
+					for _, mb := range mailboxes {
+						<a
+							href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s", mb.Name)) }
+							class={ "mailbox-item", templ.KV("active", mb.Name == mailbox) }
+						>
+							{ mb.Name }
+						</a>
+					}
+				</nav>
+			</aside>
+			<section class="message-view">
+				<div class="message-nav">
+					<a href={ templ.SafeURL(fmt.Sprintf("/inbox?mailbox=%s", mailbox)) } class="back-link">← { mailbox }</a>
+					<div class="message-actions">
+						<a
 							href={ templ.SafeURL(fmt.Sprintf("/compose?to=%s&subject=Re: %s", msg.From, msg.Subject)) }
 							class="btn-reply"
 						>reply</a>
@@ -140,7 +361,7 @@ templ Message(username string, mailbox string, mailboxes []mail.Mailbox, msg *ma
 			</section>
 		</div>
 	}
-}
+} */
 
 func formatSize(bytes int) string {
 	if bytes < 1024 {
