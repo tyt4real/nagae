@@ -12,7 +12,7 @@ I was scared that whatever happened to Roundcube at pissmail might happen to me 
 
 ```bash
 go install github.com/a-h/templ/cmd/templ@latest
-# for hot reload if you want it:
+# for hot reload if you want it i guess:
 go install github.com/air-verse/air@latest
 ```
 
