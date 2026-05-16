@@ -1,0 +1,8 @@
+services:
+  webmail:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.json:/app/config.json:ro
+    restart: unless-stopped

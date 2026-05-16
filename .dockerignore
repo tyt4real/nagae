@@ -1,0 +1,8 @@
+bin/
+tmp/
+config.json
+.air.toml
+*_templ.go
+*.md
+.git/
+.gitignore
